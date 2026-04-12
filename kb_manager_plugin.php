@@ -202,7 +202,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				return;
 			}
 
-			if ( ! current_user_can( 'manage_categories' ) ) {
+			if ( ! current_user_can( 'manage_kb_sections' ) ) {
 				return;
 			}
 
