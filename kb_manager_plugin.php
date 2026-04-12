@@ -502,7 +502,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			return $roles;
 		}
 
-		public static function kb_sections_shortcode( $atts ) {
+			public static function kb_sections_shortcode( $atts ) {
 			$atts = shortcode_atts(
 				array(
 					'parent'     => 0,
@@ -512,16 +512,12 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				'kb_sections'
 			);
 
-			$terms = get_terms(
-				array(
-					'taxonomy'   => self::TAXONOMY,
-					'parent'     => (int) $atts['parent'],
-					'hide_empty' => filter_var( $atts['hide_empty'], FILTER_VALIDATE_BOOLEAN ),
-					'meta_key'   => self::TERM_ORDER_META,
-					'orderby'    => 'meta_value_num',
-					'order'      => 'ASC',
-				)
-			);
+				$terms = self::get_ordered_kb_terms(
+					array(
+						'parent'     => (int) $atts['parent'],
+						'hide_empty' => filter_var( $atts['hide_empty'], FILTER_VALIDATE_BOOLEAN ),
+					)
+				);
 
 			if ( is_wp_error( $terms ) || empty( $terms ) ) {
 				return '';
@@ -599,16 +595,12 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			}
 
 			protected static function render_sections_with_articles_list( $parent = 0 ) {
-				$terms = get_terms(
-					array(
-						'taxonomy'   => self::TAXONOMY,
-						'parent'     => (int) $parent,
-						'hide_empty' => true,
-						'meta_key'   => self::TERM_ORDER_META,
-						'orderby'    => 'meta_value_num',
-						'order'      => 'ASC',
-					)
-				);
+					$terms = self::get_ordered_kb_terms(
+						array(
+							'parent'     => (int) $parent,
+							'hide_empty' => true,
+						)
+					);
 
 				if ( is_wp_error( $terms ) || empty( $terms ) ) {
 					return '';
@@ -669,6 +661,41 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 
 			public static function kb_all_sections_articles_shortcode() {
 				return self::render_sections_with_articles_list( 0 );
+			}
+
+			protected static function get_ordered_kb_terms( $args = array() ) {
+				$query_args = wp_parse_args(
+					$args,
+					array(
+						'taxonomy'   => self::TAXONOMY,
+						'parent'     => 0,
+						'hide_empty' => false,
+						'meta_key'   => self::TERM_ORDER_META,
+						'orderby'    => 'meta_value_num',
+						'order'      => 'ASC',
+					)
+				);
+
+				$terms = get_terms( $query_args );
+				if ( is_wp_error( $terms ) || empty( $terms ) ) {
+					return $terms;
+				}
+
+				usort(
+					$terms,
+					static function ( $left, $right ) {
+						$left_order  = (int) get_term_meta( $left->term_id, self::TERM_ORDER_META, true );
+						$right_order = (int) get_term_meta( $right->term_id, self::TERM_ORDER_META, true );
+
+						if ( $left_order === $right_order ) {
+							return strcasecmp( $left->name, $right->name );
+						}
+
+						return $left_order <=> $right_order;
+					}
+				);
+
+				return $terms;
 			}
 		}
 
