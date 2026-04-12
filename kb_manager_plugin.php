@@ -135,8 +135,8 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			);
 		}
 
-		public static function register_role() {
-			$caps = array(
+			public static function register_role() {
+				$caps = array(
 				'read'                          => true,
 				'upload_files'                  => true,
 
@@ -164,15 +164,24 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 
 			add_role( self::ROLE, __( 'KB Editor', 'kb-manager' ), $caps );
 
-			$role = get_role( self::ROLE );
-			if ( $role ) {
-				foreach ( $caps as $cap => $grant ) {
-					if ( $grant && ! $role->has_cap( $cap ) ) {
-						$role->add_cap( $cap );
+				$role = get_role( self::ROLE );
+				if ( $role ) {
+					foreach ( $caps as $cap => $grant ) {
+						if ( $grant && ! $role->has_cap( $cap ) ) {
+							$role->add_cap( $cap );
+						}
+					}
+				}
+
+				$admin_role = get_role( 'administrator' );
+				if ( $admin_role ) {
+					foreach ( $caps as $cap => $grant ) {
+						if ( $grant && ! $admin_role->has_cap( $cap ) ) {
+							$admin_role->add_cap( $cap );
+						}
 					}
 				}
 			}
-		}
 
 		public static function add_term_order_field() {
 			?>
@@ -202,7 +211,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				return;
 			}
 
-			if ( ! current_user_can( 'manage_categories' ) ) {
+			if ( ! current_user_can( 'manage_kb_sections' ) ) {
 				return;
 			}
 
