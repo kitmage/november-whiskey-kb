@@ -3,7 +3,7 @@
  * Plugin Name: KB Manager
  * Description: Knowledge Base post type + hierarchical taxonomy + manual ordering + KB Editor role + restricted media access.
  * Version: 1.0.0
- * Author: OpenAI
+ * Author: Kitmage.com
  * License: GPL-2.0-or-later
  */
 
