@@ -32,8 +32,10 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 
 			add_filter( 'manage_edit-' . self::TAXONOMY . '_columns', array( __CLASS__, 'term_columns' ) );
 			add_filter( 'manage_' . self::TAXONOMY . '_custom_column', array( __CLASS__, 'term_column_content' ), 10, 3 );
-			add_filter( 'manage_edit-' . self::POST_TYPE . '_columns', array( __CLASS__, 'post_columns' ) );
-			add_action( 'manage_' . self::POST_TYPE . '_posts_custom_column', array( __CLASS__, 'post_column_content' ), 10, 2 );
+				add_filter( 'manage_edit-' . self::POST_TYPE . '_columns', array( __CLASS__, 'post_columns' ) );
+				add_action( 'manage_' . self::POST_TYPE . '_posts_custom_column', array( __CLASS__, 'post_column_content' ), 10, 2 );
+				add_action( 'add_meta_boxes', array( __CLASS__, 'register_article_order_metabox' ) );
+				add_action( 'save_post_' . self::POST_TYPE, array( __CLASS__, 'save_article_order' ), 10, 2 );
 
 			add_action( 'pre_get_terms', array( __CLASS__, 'sort_terms_in_admin' ) );
 			add_action( 'pre_get_posts', array( __CLASS__, 'sort_posts_in_admin' ) );
@@ -243,14 +245,76 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			return $insert_after;
 		}
 
-		public static function post_column_content( $column, $post_id ) {
-			if ( 'kb_order' === $column ) {
-				$post = get_post( $post_id );
-				if ( $post ) {
-					echo esc_html( (string) (int) $post->menu_order );
+			public static function post_column_content( $column, $post_id ) {
+				if ( 'kb_order' === $column ) {
+					$post = get_post( $post_id );
+					if ( $post ) {
+						echo esc_html( (string) (int) $post->menu_order );
+					}
 				}
 			}
-		}
+
+			public static function register_article_order_metabox() {
+				add_meta_box(
+					'kb-article-order',
+					__( 'Article Order', 'kb-manager' ),
+					array( __CLASS__, 'render_article_order_metabox' ),
+					self::POST_TYPE,
+					'side',
+					'default'
+				);
+			}
+
+			public static function render_article_order_metabox( $post ) {
+				wp_nonce_field( 'kb_article_order_save', 'kb_article_order_nonce' );
+				?>
+				<p>
+					<label for="kb-article-order-field"><?php esc_html_e( 'Order', 'kb-manager' ); ?></label>
+					<input
+						type="number"
+						min="0"
+						step="1"
+						id="kb-article-order-field"
+						name="kb_article_order"
+						value="<?php echo esc_attr( (string) (int) $post->menu_order ); ?>"
+						class="small-text"
+					/>
+				</p>
+				<p class="description"><?php esc_html_e( 'Lower numbers appear first.', 'kb-manager' ); ?></p>
+				<?php
+			}
+
+			public static function save_article_order( $post_id, $post ) {
+				if ( ! $post instanceof WP_Post || self::POST_TYPE !== $post->post_type ) {
+					return;
+				}
+
+				if ( ! isset( $_POST['kb_article_order_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['kb_article_order_nonce'] ) ), 'kb_article_order_save' ) ) {
+					return;
+				}
+
+				if ( ! current_user_can( 'edit_post', $post_id ) ) {
+					return;
+				}
+
+				if ( wp_is_post_revision( $post_id ) ) {
+					return;
+				}
+
+				$order = isset( $_POST['kb_article_order'] ) ? max( 0, (int) wp_unslash( $_POST['kb_article_order'] ) ) : 0;
+				if ( (int) $post->menu_order === $order ) {
+					return;
+				}
+
+				remove_action( 'save_post_' . self::POST_TYPE, array( __CLASS__, 'save_article_order' ), 10 );
+				wp_update_post(
+					array(
+						'ID'         => $post_id,
+						'menu_order' => $order,
+					)
+				);
+				add_action( 'save_post_' . self::POST_TYPE, array( __CLASS__, 'save_article_order' ), 10, 2 );
+			}
 
 		public static function sort_terms_in_admin( $query ) {
 			if ( ! is_admin() || ! $query instanceof WP_Term_Query ) {
@@ -438,7 +502,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			return $roles;
 		}
 
-		public static function kb_sections_shortcode( $atts ) {
+			public static function kb_sections_shortcode( $atts ) {
 			$atts = shortcode_atts(
 				array(
 					'parent'     => 0,
@@ -448,16 +512,12 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				'kb_sections'
 			);
 
-			$terms = get_terms(
-				array(
-					'taxonomy'   => self::TAXONOMY,
-					'parent'     => (int) $atts['parent'],
-					'hide_empty' => filter_var( $atts['hide_empty'], FILTER_VALIDATE_BOOLEAN ),
-					'meta_key'   => self::TERM_ORDER_META,
-					'orderby'    => 'meta_value_num',
-					'order'      => 'ASC',
-				)
-			);
+				$terms = self::get_ordered_kb_terms(
+					array(
+						'parent'     => (int) $atts['parent'],
+						'hide_empty' => filter_var( $atts['hide_empty'], FILTER_VALIDATE_BOOLEAN ),
+					)
+				);
 
 			if ( is_wp_error( $terms ) || empty( $terms ) ) {
 				return '';
@@ -535,16 +595,12 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			}
 
 			protected static function render_sections_with_articles_list( $parent = 0 ) {
-				$terms = get_terms(
-					array(
-						'taxonomy'   => self::TAXONOMY,
-						'parent'     => (int) $parent,
-						'hide_empty' => true,
-						'meta_key'   => self::TERM_ORDER_META,
-						'orderby'    => 'meta_value_num',
-						'order'      => 'ASC',
-					)
-				);
+					$terms = self::get_ordered_kb_terms(
+						array(
+							'parent'     => (int) $parent,
+							'hide_empty' => true,
+						)
+					);
 
 				if ( is_wp_error( $terms ) || empty( $terms ) ) {
 					return '';
@@ -605,6 +661,41 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 
 			public static function kb_all_sections_articles_shortcode() {
 				return self::render_sections_with_articles_list( 0 );
+			}
+
+			protected static function get_ordered_kb_terms( $args = array() ) {
+				$query_args = wp_parse_args(
+					$args,
+					array(
+						'taxonomy'   => self::TAXONOMY,
+						'parent'     => 0,
+						'hide_empty' => false,
+						'meta_key'   => self::TERM_ORDER_META,
+						'orderby'    => 'meta_value_num',
+						'order'      => 'ASC',
+					)
+				);
+
+				$terms = get_terms( $query_args );
+				if ( is_wp_error( $terms ) || empty( $terms ) ) {
+					return $terms;
+				}
+
+				usort(
+					$terms,
+					static function ( $left, $right ) {
+						$left_order  = (int) get_term_meta( $left->term_id, self::TERM_ORDER_META, true );
+						$right_order = (int) get_term_meta( $right->term_id, self::TERM_ORDER_META, true );
+
+						if ( $left_order === $right_order ) {
+							return strcasecmp( $left->name, $right->name );
+						}
+
+						return $left_order <=> $right_order;
+					}
+				);
+
+				return $terms;
 			}
 		}
 
