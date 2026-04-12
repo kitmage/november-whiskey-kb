@@ -47,9 +47,10 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			add_filter( 'views_upload', array( __CLASS__, 'prune_media_views' ) );
 			add_filter( 'editable_roles', array( __CLASS__, 'hide_roles_from_kb_editor' ) );
 
-			add_shortcode( 'kb_sections', array( __CLASS__, 'kb_sections_shortcode' ) );
-			add_shortcode( 'kb_section_articles', array( __CLASS__, 'kb_section_articles_shortcode' ) );
-		}
+				add_shortcode( 'kb_sections', array( __CLASS__, 'kb_sections_shortcode' ) );
+				add_shortcode( 'kb_section_articles', array( __CLASS__, 'kb_section_articles_shortcode' ) );
+				add_shortcode( 'kb_all_sections_articles', array( __CLASS__, 'kb_all_sections_articles_shortcode' ) );
+			}
 
 		public static function activate() {
 			self::register_post_type();
@@ -135,8 +136,8 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			);
 		}
 
-		public static function register_role() {
-			$caps = array(
+			public static function register_role() {
+				$caps = array(
 				'read'                          => true,
 				'upload_files'                  => true,
 
@@ -164,15 +165,24 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 
 			add_role( self::ROLE, __( 'KB Editor', 'kb-manager' ), $caps );
 
-			$role = get_role( self::ROLE );
-			if ( $role ) {
-				foreach ( $caps as $cap => $grant ) {
-					if ( $grant && ! $role->has_cap( $cap ) ) {
-						$role->add_cap( $cap );
+				$role = get_role( self::ROLE );
+				if ( $role ) {
+					foreach ( $caps as $cap => $grant ) {
+						if ( $grant && ! $role->has_cap( $cap ) ) {
+							$role->add_cap( $cap );
+						}
+					}
+				}
+
+				$admin_role = get_role( 'administrator' );
+				if ( $admin_role ) {
+					foreach ( $caps as $cap => $grant ) {
+						if ( $grant && ! $admin_role->has_cap( $cap ) ) {
+							$admin_role->add_cap( $cap );
+						}
 					}
 				}
 			}
-		}
 
 		public static function add_term_order_field() {
 			?>
@@ -202,7 +212,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				return;
 			}
 
-			if ( ! current_user_can( 'manage_categories' ) ) {
+			if ( ! current_user_can( 'manage_kb_sections' ) ) {
 				return;
 			}
 
@@ -466,7 +476,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			return ob_get_clean();
 		}
 
-		public static function kb_section_articles_shortcode( $atts ) {
+			public static function kb_section_articles_shortcode( $atts ) {
 			$atts = shortcode_atts(
 				array(
 					'section'        => '',
@@ -520,10 +530,83 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				);
 			}
 			echo '</ul>';
-			wp_reset_postdata();
-			return ob_get_clean();
+				wp_reset_postdata();
+				return ob_get_clean();
+			}
+
+			protected static function render_sections_with_articles_list( $parent = 0 ) {
+				$terms = get_terms(
+					array(
+						'taxonomy'   => self::TAXONOMY,
+						'parent'     => (int) $parent,
+						'hide_empty' => true,
+						'meta_key'   => self::TERM_ORDER_META,
+						'orderby'    => 'meta_value_num',
+						'order'      => 'ASC',
+					)
+				);
+
+				if ( is_wp_error( $terms ) || empty( $terms ) ) {
+					return '';
+				}
+
+				ob_start();
+				echo '<ul class="kb-all-sections-articles">';
+
+				foreach ( $terms as $term ) {
+					echo '<li>';
+					printf(
+						'<a href="%1$s">%2$s</a>',
+						esc_url( get_term_link( $term ) ),
+						esc_html( $term->name )
+					);
+
+					$articles = new WP_Query(
+						array(
+							'post_type'      => self::POST_TYPE,
+							'post_status'    => 'publish',
+							'posts_per_page' => -1,
+							'orderby'        => array( 'menu_order' => 'ASC', 'title' => 'ASC' ),
+							'tax_query'      => array(
+								array(
+									'taxonomy' => self::TAXONOMY,
+									'field'    => 'term_id',
+									'terms'    => array( (int) $term->term_id ),
+								),
+							),
+						)
+					);
+
+					if ( $articles->have_posts() ) {
+						echo '<ul class="kb-all-sections-articles-posts">';
+						while ( $articles->have_posts() ) {
+							$articles->the_post();
+							printf(
+								'<li><a href="%1$s">%2$s</a></li>',
+								esc_url( get_permalink() ),
+								esc_html( get_the_title() )
+							);
+						}
+						echo '</ul>';
+						wp_reset_postdata();
+					}
+
+					$children_html = self::render_sections_with_articles_list( (int) $term->term_id );
+					if ( '' !== $children_html ) {
+						echo $children_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					}
+
+					echo '</li>';
+				}
+
+				echo '</ul>';
+				return ob_get_clean();
+			}
+
+			public static function kb_all_sections_articles_shortcode() {
+				return self::render_sections_with_articles_list( 0 );
+			}
 		}
-	}
 
 	KB_Manager_Plugin::init();
 	register_activation_hook( __FILE__, array( 'KB_Manager_Plugin', 'activate' ) );
