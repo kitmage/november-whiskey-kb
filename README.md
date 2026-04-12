@@ -39,6 +39,7 @@ KB Manager is a WordPress plugin that provides a focused knowledge base workflow
 - Hides most wp-admin menu pages not needed for KB management.
 - Restricts accessible admin screens to KB, media, and profile flows.
 - Redirects dashboard access to the KB article list.
+- Adds an **Organize KB** submenu page with drag-and-drop section and article ordering.
 
 ### Shortcodes
 

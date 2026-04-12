@@ -44,10 +44,13 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			add_action( 'pre_get_posts', array( __CLASS__, 'limit_media_library_to_own_uploads' ) );
 			add_filter( 'map_meta_cap', array( __CLASS__, 'restrict_attachment_deletes_to_owners' ), 10, 4 );
 
-			add_action( 'admin_menu', array( __CLASS__, 'restrict_admin_menu' ), 999 );
-			add_action( 'admin_init', array( __CLASS__, 'restrict_admin_screens' ) );
-			add_filter( 'views_upload', array( __CLASS__, 'prune_media_views' ) );
-			add_filter( 'editable_roles', array( __CLASS__, 'hide_roles_from_kb_editor' ) );
+				add_action( 'admin_menu', array( __CLASS__, 'restrict_admin_menu' ), 999 );
+				add_action( 'admin_menu', array( __CLASS__, 'register_organize_kb_submenu' ) );
+				add_action( 'admin_init', array( __CLASS__, 'restrict_admin_screens' ) );
+				add_action( 'admin_init', array( __CLASS__, 'handle_organize_kb_submission' ) );
+				add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_organize_kb_assets' ) );
+				add_filter( 'views_upload', array( __CLASS__, 'prune_media_views' ) );
+				add_filter( 'editable_roles', array( __CLASS__, 'hide_roles_from_kb_editor' ) );
 
 				add_shortcode( 'kb_sections', array( __CLASS__, 'kb_sections_shortcode' ) );
 				add_shortcode( 'kb_section_articles', array( __CLASS__, 'kb_section_articles_shortcode' ) );
@@ -428,7 +431,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			);
 		}
 
-		public static function restrict_admin_screens() {
+			public static function restrict_admin_screens() {
 			if ( ! is_admin() || ! self::is_kb_editor() ) {
 				return;
 			}
@@ -451,13 +454,20 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				'index.php',
 			);
 
-			if ( in_array( $pagenow, $allowed_core_screens, true ) ) {
-				if ( 'index.php' === $pagenow ) {
-					wp_safe_redirect( admin_url( 'edit.php?post_type=' . self::POST_TYPE ) );
-					exit;
+				if ( in_array( $pagenow, $allowed_core_screens, true ) ) {
+					if ( 'index.php' === $pagenow ) {
+						wp_safe_redirect( admin_url( 'edit.php?post_type=' . self::POST_TYPE ) );
+						exit;
+					}
+					return;
 				}
-				return;
-			}
+
+				if ( 'admin.php' === $pagenow ) {
+					$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+					if ( 'kb-organize' === $page ) {
+						return;
+					}
+				}
 
 			if ( in_array( $pagenow, $allowed_post_type_screens, true ) ) {
 				$post_type = isset( $_GET['post_type'] ) ? sanitize_key( wp_unslash( $_GET['post_type'] ) ) : '';
@@ -495,13 +505,214 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			return $views;
 		}
 
-		public static function hide_roles_from_kb_editor( $roles ) {
-			if ( self::is_kb_editor() ) {
-				return array();
+			public static function hide_roles_from_kb_editor( $roles ) {
+				if ( self::is_kb_editor() ) {
+					return array();
+				}
+				return $roles;
 			}
-			return $roles;
-		}
 
+			public static function register_organize_kb_submenu() {
+				add_submenu_page(
+					'edit.php?post_type=' . self::POST_TYPE,
+					__( 'Organize KB', 'kb-manager' ),
+					__( 'Organize KB', 'kb-manager' ),
+					'edit_kb_articles',
+					'kb-organize',
+					array( __CLASS__, 'render_organize_kb_page' )
+				);
+			}
+
+			public static function enqueue_organize_kb_assets( $hook_suffix ) {
+				if ( 'kb_article_page_kb-organize' !== $hook_suffix ) {
+					return;
+				}
+
+				wp_enqueue_script( 'jquery-ui-sortable' );
+			}
+
+			public static function handle_organize_kb_submission() {
+				if ( ! is_admin() ) {
+					return;
+				}
+
+				if ( ! isset( $_POST['kb_organize_action'] ) || 'save' !== $_POST['kb_organize_action'] ) {
+					return;
+				}
+
+				if ( ! current_user_can( 'edit_kb_articles' ) ) {
+					return;
+				}
+
+				if ( ! isset( $_POST['kb_organize_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['kb_organize_nonce'] ) ), 'kb_organize_save' ) ) {
+					return;
+				}
+
+				$payload_json = isset( $_POST['kb_organize_payload'] ) ? wp_unslash( $_POST['kb_organize_payload'] ) : '';
+				$payload      = json_decode( (string) $payload_json, true );
+				if ( ! is_array( $payload ) || ! isset( $payload['sections'] ) || ! is_array( $payload['sections'] ) ) {
+					return;
+				}
+
+				foreach ( $payload['sections'] as $section_index => $section_item ) {
+					$term_id = isset( $section_item['term_id'] ) ? (int) $section_item['term_id'] : 0;
+					if ( $term_id <= 0 ) {
+						continue;
+					}
+
+					update_term_meta( $term_id, self::TERM_ORDER_META, max( 0, (int) $section_index ) );
+
+					$articles = isset( $section_item['articles'] ) && is_array( $section_item['articles'] ) ? $section_item['articles'] : array();
+					foreach ( $articles as $article_index => $article_id ) {
+						$post_id = (int) $article_id;
+						if ( $post_id <= 0 ) {
+							continue;
+						}
+
+						$post = get_post( $post_id );
+						if ( ! $post || self::POST_TYPE !== $post->post_type ) {
+							continue;
+						}
+
+						wp_update_post(
+							array(
+								'ID'         => $post_id,
+								'menu_order' => max( 0, (int) $article_index ),
+							)
+						);
+						wp_set_object_terms( $post_id, array( $term_id ), self::TAXONOMY, false );
+					}
+				}
+
+				wp_safe_redirect(
+					add_query_arg(
+						array(
+							'post_type' => self::POST_TYPE,
+							'page'      => 'kb-organize',
+							'updated'   => '1',
+						),
+						admin_url( 'edit.php' )
+					)
+				);
+				exit;
+			}
+
+			protected static function get_articles_for_section( $term_id ) {
+				return get_posts(
+					array(
+						'post_type'      => self::POST_TYPE,
+						'post_status'    => array( 'publish', 'draft', 'pending', 'future', 'private' ),
+						'posts_per_page' => -1,
+						'orderby'        => array( 'menu_order' => 'ASC', 'title' => 'ASC' ),
+						'tax_query'      => array(
+							array(
+								'taxonomy' => self::TAXONOMY,
+								'field'    => 'term_id',
+								'terms'    => array( (int) $term_id ),
+							),
+						),
+					)
+				);
+			}
+
+			public static function render_organize_kb_page() {
+				if ( ! current_user_can( 'edit_kb_articles' ) ) {
+					wp_die( esc_html__( 'You do not have permission to organize the knowledge base.', 'kb-manager' ), 403 );
+				}
+
+				$sections = self::get_ordered_kb_terms(
+					array(
+						'parent'     => 0,
+						'hide_empty' => false,
+					)
+				);
+				?>
+				<div class="wrap">
+					<h1><?php esc_html_e( 'Organize KB', 'kb-manager' ); ?></h1>
+					<?php if ( isset( $_GET['updated'] ) && '1' === $_GET['updated'] ) : ?>
+						<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Knowledge base ordering updated.', 'kb-manager' ); ?></p></div>
+					<?php endif; ?>
+
+					<form method="post" id="kb-organize-form">
+						<?php wp_nonce_field( 'kb_organize_save', 'kb_organize_nonce' ); ?>
+						<input type="hidden" name="kb_organize_action" value="save" />
+						<input type="hidden" name="kb_organize_payload" id="kb-organize-payload" value="" />
+
+						<div id="kb-organize-sections">
+							<?php if ( is_wp_error( $sections ) || empty( $sections ) ) : ?>
+								<p><?php esc_html_e( 'No sections found.', 'kb-manager' ); ?></p>
+							<?php else : ?>
+								<?php foreach ( $sections as $section ) : ?>
+									<div class="kb-section-box" data-term-id="<?php echo esc_attr( (string) (int) $section->term_id ); ?>">
+										<h2 class="kb-section-title">
+											<span class="dashicons dashicons-move"></span>
+											<a href="<?php echo esc_url( get_edit_term_link( $section, self::TAXONOMY ) ); ?>"><?php echo esc_html( $section->name ); ?></a>
+										</h2>
+										<ul class="kb-article-list" data-term-id="<?php echo esc_attr( (string) (int) $section->term_id ); ?>">
+											<?php foreach ( self::get_articles_for_section( (int) $section->term_id ) as $article ) : ?>
+												<li class="kb-article-item" data-post-id="<?php echo esc_attr( (string) (int) $article->ID ); ?>">
+													<a href="<?php echo esc_url( get_edit_post_link( $article->ID ) ); ?>"><?php echo esc_html( get_the_title( $article->ID ) ); ?></a>
+												</li>
+											<?php endforeach; ?>
+										</ul>
+									</div>
+								<?php endforeach; ?>
+							<?php endif; ?>
+						</div>
+
+						<?php submit_button( __( 'Save KB Order', 'kb-manager' ) ); ?>
+					</form>
+				</div>
+
+				<style>
+					#kb-organize-sections { max-width: 900px; }
+					.kb-section-box { border: 1px solid #dcdcde; margin: 0 0 14px; background: #fff; }
+					.kb-section-title { margin: 0; padding: 10px 12px; border-bottom: 1px solid #dcdcde; background: #f6f7f7; cursor: move; display: flex; gap: 8px; align-items: center; }
+					.kb-section-box-placeholder { border: 1px dashed #8c8f94; background: #f6f7f7; height: 56px; margin-bottom: 14px; }
+					.kb-article-list { margin: 0; padding: 10px 12px; min-height: 20px; }
+					.kb-article-item { margin: 0 0 8px; padding: 7px 10px; border: 1px solid #dcdcde; background: #fff; cursor: move; list-style: none; }
+					.kb-article-placeholder { border: 1px dashed #8c8f94; background: #f0f6fc; height: 36px; margin-bottom: 8px; list-style: none; }
+				</style>
+
+				<script>
+					jQuery(function($) {
+						var $sections = $('#kb-organize-sections');
+
+						$sections.sortable({
+							items: '.kb-section-box',
+							handle: '.kb-section-title',
+							placeholder: 'kb-section-box-placeholder'
+						});
+
+						$('.kb-article-list').sortable({
+							connectWith: '.kb-article-list',
+							items: '> .kb-article-item',
+							placeholder: 'kb-article-placeholder'
+						});
+
+						$('#kb-organize-form').on('submit', function() {
+							var payload = { sections: [] };
+
+							$sections.find('> .kb-section-box').each(function() {
+								var $section = $(this);
+								var item = {
+									term_id: parseInt($section.data('term-id'), 10) || 0,
+									articles: []
+								};
+
+								$section.find('> .kb-article-list > .kb-article-item').each(function() {
+									item.articles.push(parseInt($(this).data('post-id'), 10) || 0);
+								});
+
+								payload.sections.push(item);
+							});
+
+							$('#kb-organize-payload').val(JSON.stringify(payload));
+						});
+					});
+				</script>
+				<?php
+			}
 			public static function kb_sections_shortcode( $atts ) {
 			$atts = shortcode_atts(
 				array(
