@@ -44,6 +44,8 @@ KB Manager is a WordPress plugin that provides a focused knowledge base workflow
   Lists child KB sections for a given parent term.
 - `[kb_section_articles section="" posts_per_page="-1"]`  
   Lists KB articles in a section by term ID or slug, or current KB section archive context.
+- `[kb_all_sections_articles]`  
+  Renders all non-empty KB sections and all published KB articles under each section in a nested list.
 
 ## Installation
 
