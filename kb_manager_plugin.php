@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: KB Manager
- * Description: Knowledge Base post type + hierarchical taxonomy + manual ordering + KB Editor role + restricted media access.
- * Version: 1.0.0
+ * Description: Knowledge Base post type + hierarchical sections taxonomy + parent-child article support + manual ordering + KB Editor role + restricted media access.
+ * Version: 1.1.0
  * Author: Kitmage.com
  * License: GPL-2.0-or-later
  */
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 	final class KB_Manager_Plugin {
-		const VERSION            = '1.0.0';
+		const VERSION            = '1.1.0';
 		const ROLE               = 'kb_editor';
 		const POST_TYPE          = 'kb_article';
 		const TAXONOMY           = 'kb_section';
@@ -97,7 +97,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 					'menu_icon'          => 'dashicons-book-alt',
 					'supports'           => array( 'title', 'editor', 'author', 'revisions', 'excerpt', 'thumbnail', 'page-attributes' ),
 					'taxonomies'         => array( self::TAXONOMY ),
-					'hierarchical'       => false,
+					'hierarchical'       => true,
 					'capability_type'    => array( 'kb_article', 'kb_articles' ),
 					'map_meta_cap'       => true,
 					'delete_with_user'   => false,

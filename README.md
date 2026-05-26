@@ -3,6 +3,7 @@
 KB Manager is a WordPress plugin that provides a focused knowledge base workflow with:
 
 - A custom post type for KB articles (`kb_article`).
+- Parent-child relationships for KB articles.
 - A hierarchical taxonomy for sections (`kb_section`).
 - Manual ordering for sections and articles.
 - A dedicated **KB Editor** role with KB-specific capabilities.
@@ -14,6 +15,7 @@ KB Manager is a WordPress plugin that provides a focused knowledge base workflow
 ### Custom content model
 
 - Registers a public, REST-enabled **Knowledge Base** post type at `/knowledge-base/`.
+- Enables hierarchical KB articles so each article can optionally have a parent article.
 - Registers a hierarchical **KB Sections** taxonomy at `/kb-section/`.
 
 ### Role and permissions
