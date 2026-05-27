@@ -99,6 +99,7 @@ Renders the entire KB article tree from top-level parents downward.
     - `kb-depth-{n}`
     - `kb-child-index-{n}`
     - `kb-parent` or `kb-descendant`
+    - `kb-active` for the current queried KB article
 - **Ordering**
   - At every tree level: `menu_order` ascending, then title.
 

@@ -903,6 +903,11 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			protected static function render_kb_article_title_item( $article, $depth = 0, $sibling_index = 1 ) {
 				$item_classes = array( 'kb-article-item', 'kb-depth-' . (int) $depth, 'kb-child-index-' . (int) $sibling_index );
 
+				$current_article_id = get_queried_object_id();
+				if ( $current_article_id && (int) $current_article_id === (int) $article->ID ) {
+					$item_classes[] = 'kb-active';
+				}
+
 				if ( 0 === (int) $depth ) {
 					$item_classes[] = 'kb-parent';
 				} else {
