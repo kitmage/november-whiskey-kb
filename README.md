@@ -117,6 +117,7 @@ Renders a **filtered tree view** for the current KB article using the same neste
 - **Context behavior**
   - Outputs only on `kb_article` posts.
   - Returns empty outside `kb_article` context.
+  - Returns empty when the current article has no parent (single breadcrumb element).
 - **Output**
   - `<ul class="kb-article-family-post-order kb-article-titles">` with nested `<ul class="kb-article-children">` trees.
   - Reuses item classes from `[kb_article_titles]`, including `kb-active` for the current queried article.
@@ -134,6 +135,7 @@ Renders a breadcrumb trail for the current KB article from top-level ancestor to
 - **Context behavior**
   - Outputs only on `kb_article` posts.
   - Returns empty outside `kb_article` context.
+  - Returns empty when the current article has no parent (single breadcrumb element).
 - **Output**
   - `<nav class="kb-breadcrumbs">` containing linked ancestors and current title as `<span class="kb-breadcrumb-current kb-active">...`.
 - **Ordering**

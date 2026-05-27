@@ -1097,7 +1097,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				$crumb_ids = array_reverse( get_post_ancestors( $article_id ) );
 				$crumb_ids[] = (int) $article_id;
 
-				if ( empty( $crumb_ids ) ) {
+				if ( count( $crumb_ids ) <= 1 ) {
 					return '';
 				}
 
