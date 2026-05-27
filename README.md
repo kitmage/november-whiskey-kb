@@ -8,7 +8,7 @@ KB Manager is a WordPress plugin that provides a focused knowledge base workflow
 - Manual ordering for sections and articles.
 - A dedicated **KB Editor** role with KB-specific capabilities.
 - Restricted admin/media access for KB Editors.
-- Shortcodes for listing sections and section articles.
+- Shortcodes for rendering KB sections and KB article navigation lists.
 
 ## Features
 
@@ -43,14 +43,103 @@ KB Manager is a WordPress plugin that provides a focused knowledge base workflow
 - Redirects dashboard access to the KB article list.
 - Adds an **Organize KB** submenu page with drag-and-drop section and article ordering.
 
-### Shortcodes
+## Shortcodes
 
-- `[kb_sections parent="0" hide_empty="false"]`  
-  Lists child KB sections for a given parent term, sorted by section order.
-- `[kb_section_articles section="" posts_per_page="-1"]`  
-  Lists KB articles in a section by term ID or slug, or current KB section archive context, sorted by article order.
-- `[kb_all_sections_articles]`  
-  Renders all non-empty KB sections and all published KB articles under each section in a nested list, sorted by section/article order.
+All shortcodes return empty output when no matching content is found.
+
+### 1) `[kb_sections parent="0" hide_empty="false"]`
+
+Lists KB section terms directly under the provided `parent` term ID.
+
+- **Attributes**
+  - `parent` (int, default `0`): Parent section term ID to query.
+  - `hide_empty` (bool-like string, default `false`): Whether to exclude terms with no posts.
+- **Output**
+  - `<ul class="kb-sections">` with linked section names.
+- **Ordering**
+  - Section order meta (`_kb_section_order`) ascending, then section name.
+
+### 2) `[kb_section_articles section="" posts_per_page="-1"]`
+
+Lists published KB articles for one KB section.
+
+- **Attributes**
+  - `section` (string/int, default `""`):
+    - numeric term ID, or
+    - term slug, or
+    - empty to use current `kb_section` archive context.
+  - `posts_per_page` (int, default `-1`): Max number of articles.
+- **Output**
+  - `<ul class="kb-section-articles">` with linked article titles.
+- **Ordering**
+  - `menu_order` ascending, then title.
+
+### 3) `[kb_all_sections_articles]`
+
+Renders all non-empty KB sections recursively with their published KB articles.
+
+- **Attributes**
+  - None.
+- **Output**
+  - Nested `<ul class="kb-all-sections-articles">` lists with section links and article links.
+- **Ordering**
+  - Sections: section order meta ascending, then section name.
+  - Articles inside each section: `menu_order` ascending, then title.
+
+### 4) `[kb_article_titles]`
+
+Renders the entire KB article tree from top-level parents downward.
+
+- **Attributes**
+  - None.
+- **Output**
+  - `<ul class="kb-article-titles">` with nested lists.
+  - Adds CSS classes per item depth and relationship:
+    - `kb-article-item`
+    - `kb-depth-{n}`
+    - `kb-child-index-{n}`
+    - `kb-parent` or `kb-descendant`
+    - `kb-active` for the current queried KB article
+- **Ordering**
+  - At every tree level: `menu_order` ascending, then title.
+
+### 5) `[kb_article_family_post_order]`
+
+Renders a **filtered tree view** for the current KB article using the same nested structure/class style as `[kb_article_titles]`, but only includes articles related to the current one.
+
+- **Related articles included**
+  - All ancestors up to the top-level parent.
+  - The current article itself.
+  - All descendants (children, grandchildren, etc.).
+  - Sibling posts of the current article (when the current article has a parent).
+- **Attributes**
+  - None.
+- **Context behavior**
+  - Outputs only on `kb_article` posts.
+  - Returns empty outside `kb_article` context.
+  - Returns empty when the current article has no parent (single breadcrumb element).
+- **Output**
+  - `<ul class="kb-article-family-post-order kb-article-titles">` with nested `<ul class="kb-article-children">` trees.
+  - Reuses item classes from `[kb_article_titles]`, including `kb-active` for the current queried article.
+- **Ordering**
+  - Tree rendering keeps sibling order as `menu_order` ascending, then title.
+  - Descendant collection is still computed in post-order for family membership.
+
+
+### 6) `[kb_breadcrumbs separator=">"]`
+
+Renders a breadcrumb trail for the current KB article from top-level ancestor to current article.
+
+- **Attributes**
+  - `separator` (string, default `>`): Text shown between breadcrumb items.
+- **Context behavior**
+  - Outputs only on `kb_article` posts.
+  - Returns empty outside `kb_article` context.
+  - Returns empty when the current article has no parent (single breadcrumb element).
+- **Output**
+  - `<nav class="kb-breadcrumbs">` containing linked ancestors and current title as `<span class="kb-breadcrumb-current kb-active">...`.
+- **Ordering**
+  - Top-level ancestor → ... → immediate parent → current article.
 
 ## Installation
 
