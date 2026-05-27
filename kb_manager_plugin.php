@@ -57,6 +57,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				add_shortcode( 'kb_all_sections_articles', array( __CLASS__, 'kb_all_sections_articles_shortcode' ) );
 				add_shortcode( 'kb_article_titles', array( __CLASS__, 'kb_article_titles_shortcode' ) );
 				add_shortcode( 'kb_article_family_post_order', array( __CLASS__, 'kb_article_family_post_order_shortcode' ) );
+				add_shortcode( 'kb_breadcrumbs', array( __CLASS__, 'kb_breadcrumbs_shortcode' ) );
 			}
 
 		public static function activate() {
@@ -1076,6 +1077,51 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				}
 
 				return $descendants;
+			}
+
+
+			public static function kb_breadcrumbs_shortcode( $atts ) {
+				$atts = shortcode_atts(
+					array(
+						'separator' => '>',
+					),
+					$atts,
+					'kb_breadcrumbs'
+				);
+
+				$article_id = get_the_ID();
+				if ( ! $article_id || self::POST_TYPE !== get_post_type( $article_id ) ) {
+					return '';
+				}
+
+				$crumb_ids = array_reverse( get_post_ancestors( $article_id ) );
+				$crumb_ids[] = (int) $article_id;
+
+				if ( empty( $crumb_ids ) ) {
+					return '';
+				}
+
+				$separator = wp_strip_all_tags( (string) $atts['separator'] );
+				if ( '' === trim( $separator ) ) {
+					$separator = '>';
+				}
+
+				$parts = array();
+				$last_index = count( $crumb_ids ) - 1;
+				foreach ( $crumb_ids as $index => $crumb_id ) {
+					$title = get_the_title( $crumb_id );
+					if ( $index === $last_index ) {
+						$parts[] = '<span class="kb-breadcrumb-current kb-active">' . esc_html( $title ) . '</span>';
+					} else {
+						$parts[] = sprintf(
+							'<a class="kb-breadcrumb-link" href="%1$s">%2$s</a>',
+							esc_url( get_permalink( $crumb_id ) ),
+							esc_html( $title )
+						);
+					}
+				}
+
+				return '<nav class="kb-breadcrumbs" aria-label="' . esc_attr__( 'KB Breadcrumbs', 'kb-manager' ) . '">' . implode( ' <span class="kb-breadcrumb-separator">' . esc_html( $separator ) . '</span> ', $parts ) . '</nav>';
 			}
 
 

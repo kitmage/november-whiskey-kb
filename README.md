@@ -124,6 +124,21 @@ Renders a **filtered tree view** for the current KB article using the same neste
   - Tree rendering keeps sibling order as `menu_order` ascending, then title.
   - Descendant collection is still computed in post-order for family membership.
 
+
+### 6) `[kb_breadcrumbs separator=">"]`
+
+Renders a breadcrumb trail for the current KB article from top-level ancestor to current article.
+
+- **Attributes**
+  - `separator` (string, default `>`): Text shown between breadcrumb items.
+- **Context behavior**
+  - Outputs only on `kb_article` posts.
+  - Returns empty outside `kb_article` context.
+- **Output**
+  - `<nav class="kb-breadcrumbs">` containing linked ancestors and current title as `<span class="kb-breadcrumb-current kb-active">...`.
+- **Ordering**
+  - Top-level ancestor → ... → immediate parent → current article.
+
 ## Installation
 
 1. Copy `kb_manager_plugin.php` into a plugin directory (for example: `wp-content/plugins/kb-manager/`).
