@@ -950,50 +950,82 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 					return '';
 				}
 
-				$parent_ids = array();
-				$current_parent = (int) wp_get_post_parent_id( $article_id );
-				while ( $current_parent > 0 ) {
-					$parent_ids[] = $current_parent;
-					$current_parent = (int) wp_get_post_parent_id( $current_parent );
+				$ancestor_ids = get_post_ancestors( $article_id );
+				$family_ids   = array_merge( $ancestor_ids, array( (int) $article_id ), self::get_kb_descendants_post_order( $article_id ) );
+				$family_ids   = array_values( array_unique( array_map( 'intval', $family_ids ) ) );
+
+				if ( empty( $family_ids ) ) {
+					return '';
 				}
 
-				$descendant_ids = self::get_kb_descendants_post_order( $article_id );
-
-				if ( empty( $parent_ids ) && empty( $descendant_ids ) ) {
+				$top_ancestor_id = ! empty( $ancestor_ids ) ? (int) end( $ancestor_ids ) : (int) $article_id;
+				$root_article    = get_post( $top_ancestor_id );
+				if ( ! $root_article || self::POST_TYPE !== $root_article->post_type || 'publish' !== $root_article->post_status ) {
 					return '';
 				}
 
 				ob_start();
-				echo '<div class="kb-article-family-post-order">';
+				echo '<ul class="kb-article-family-post-order kb-article-titles">';
+				self::render_kb_article_title_item_filtered( $root_article, $family_ids, 0, 1 );
+				echo '</ul>';
 
-				if ( ! empty( $parent_ids ) ) {
-					echo '<h3 class="kb-article-family-heading kb-article-parents-heading">' . esc_html__( 'Parent Articles', 'kb-manager' ) . '</h3>';
-					echo '<ul class="kb-article-parents">';
-					foreach ( $parent_ids as $parent_id ) {
-						printf(
-							'<li><a href="%1$s">%2$s</a></li>',
-							esc_url( get_permalink( $parent_id ) ),
-							esc_html( get_the_title( $parent_id ) )
-						);
-					}
-					echo '</ul>';
-				}
-
-				if ( ! empty( $descendant_ids ) ) {
-					echo '<h3 class="kb-article-family-heading kb-article-descendants-heading">' . esc_html__( 'Child Articles', 'kb-manager' ) . '</h3>';
-					echo '<ul class="kb-article-descendants">';
-					foreach ( $descendant_ids as $descendant_id ) {
-						printf(
-							'<li><a href="%1$s">%2$s</a></li>',
-							esc_url( get_permalink( $descendant_id ) ),
-							esc_html( get_the_title( $descendant_id ) )
-						);
-					}
-					echo '</ul>';
-				}
-
-				echo '</div>';
 				return ob_get_clean();
+			}
+
+			protected static function render_kb_article_title_item_filtered( $article, $allowed_ids, $depth = 0, $sibling_index = 1 ) {
+				if ( ! in_array( (int) $article->ID, $allowed_ids, true ) ) {
+					return;
+				}
+
+				$item_classes = array( 'kb-article-item', 'kb-depth-' . (int) $depth, 'kb-child-index-' . (int) $sibling_index );
+
+				$current_article_id = get_queried_object_id();
+				if ( $current_article_id && (int) $current_article_id === (int) $article->ID ) {
+					$item_classes[] = 'kb-active';
+				}
+
+				if ( 0 === (int) $depth ) {
+					$item_classes[] = 'kb-parent';
+				} else {
+					$item_classes[] = 'kb-descendant';
+				}
+
+				printf(
+					'<li class="%1$s"><a href="%2$s">%3$s</a>',
+					esc_attr( implode( ' ', $item_classes ) ),
+					esc_url( get_permalink( $article->ID ) ),
+					esc_html( get_the_title( $article->ID ) )
+				);
+
+				$children = get_posts(
+					array(
+						'post_type'      => self::POST_TYPE,
+						'post_status'    => 'publish',
+						'posts_per_page' => -1,
+						'post_parent'    => (int) $article->ID,
+						'orderby'        => array( 'menu_order' => 'ASC', 'title' => 'ASC' ),
+						'order'          => 'ASC',
+					)
+				);
+
+				$visible_children = array_values(
+					array_filter(
+						$children,
+						static function ( $child ) use ( $allowed_ids ) {
+							return in_array( (int) $child->ID, $allowed_ids, true );
+						}
+					)
+				);
+
+				if ( ! empty( $visible_children ) ) {
+					echo '<ul class="kb-article-children kb-depth-' . esc_attr( (string) ( (int) $depth + 1 ) ) . '">';
+					foreach ( $visible_children as $index => $child ) {
+						self::render_kb_article_title_item_filtered( $child, $allowed_ids, (int) $depth + 1, $index + 1 );
+					}
+					echo '</ul>';
+				}
+
+				echo '</li>';
 			}
 
 			protected static function get_kb_descendants_post_order( $article_id ) {

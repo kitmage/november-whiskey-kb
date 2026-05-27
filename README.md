@@ -105,23 +105,23 @@ Renders the entire KB article tree from top-level parents downward.
 
 ### 5) `[kb_article_family_post_order]`
 
-For the **current KB article**, renders related family links in **post-order traversal semantics**:
+Renders a **filtered tree view** for the current KB article using the same nested structure/class style as `[kb_article_titles]`, but only includes articles related to the current one.
 
-- **Parent chain** (if present): immediate parent up through the top-level parent.
-- **Descendants** (if present): all children and deeper descendants in post-order (visit deeper descendants before each direct child).
-
+- **Related articles included**
+  - All ancestors up to the top-level parent.
+  - The current article itself.
+  - All descendants (children, grandchildren, etc.).
 - **Attributes**
   - None.
 - **Context behavior**
   - Outputs only on `kb_article` posts.
   - Returns empty outside `kb_article` context.
 - **Output**
-  - Wrapper: `<div class="kb-article-family-post-order">`
-  - Parents list: `<ul class="kb-article-parents">`
-  - Descendants list: `<ul class="kb-article-descendants">`
+  - `<ul class="kb-article-family-post-order kb-article-titles">` with nested `<ul class="kb-article-children">` trees.
+  - Reuses item classes from `[kb_article_titles]`, including `kb-active` for the current queried article.
 - **Ordering**
-  - Parent chain: immediate parent first, then its parent, continuing to top-level.
-  - Descendants: post-order using sibling ordering of `menu_order` ascending, then title.
+  - Tree rendering keeps sibling order as `menu_order` ascending, then title.
+  - Descendant collection is still computed in post-order for family membership.
 
 ## Installation
 
