@@ -56,6 +56,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				add_shortcode( 'kb_section_articles', array( __CLASS__, 'kb_section_articles_shortcode' ) );
 				add_shortcode( 'kb_all_sections_articles', array( __CLASS__, 'kb_all_sections_articles_shortcode' ) );
 				add_shortcode( 'kb_article_titles', array( __CLASS__, 'kb_article_titles_shortcode' ) );
+				add_shortcode( 'kb_article_family_post_order', array( __CLASS__, 'kb_article_family_post_order_shortcode' ) );
 			}
 
 		public static function activate() {
@@ -902,6 +903,11 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			protected static function render_kb_article_title_item( $article, $depth = 0, $sibling_index = 1 ) {
 				$item_classes = array( 'kb-article-item', 'kb-depth-' . (int) $depth, 'kb-child-index-' . (int) $sibling_index );
 
+				$current_article_id = get_queried_object_id();
+				if ( $current_article_id && (int) $current_article_id === (int) $article->ID ) {
+					$item_classes[] = 'kb-active';
+				}
+
 				if ( 0 === (int) $depth ) {
 					$item_classes[] = 'kb-parent';
 				} else {
@@ -935,6 +941,85 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				}
 
 				echo '</li>';
+			}
+
+
+			public static function kb_article_family_post_order_shortcode() {
+				$article_id = get_the_ID();
+				if ( ! $article_id || self::POST_TYPE !== get_post_type( $article_id ) ) {
+					return '';
+				}
+
+				$parent_ids = array();
+				$current_parent = (int) wp_get_post_parent_id( $article_id );
+				while ( $current_parent > 0 ) {
+					$parent_ids[] = $current_parent;
+					$current_parent = (int) wp_get_post_parent_id( $current_parent );
+				}
+
+				$descendant_ids = self::get_kb_descendants_post_order( $article_id );
+
+				if ( empty( $parent_ids ) && empty( $descendant_ids ) ) {
+					return '';
+				}
+
+				ob_start();
+				echo '<div class="kb-article-family-post-order">';
+
+				if ( ! empty( $parent_ids ) ) {
+					echo '<h3 class="kb-article-family-heading kb-article-parents-heading">' . esc_html__( 'Parent Articles', 'kb-manager' ) . '</h3>';
+					echo '<ul class="kb-article-parents">';
+					foreach ( $parent_ids as $parent_id ) {
+						printf(
+							'<li><a href="%1$s">%2$s</a></li>',
+							esc_url( get_permalink( $parent_id ) ),
+							esc_html( get_the_title( $parent_id ) )
+						);
+					}
+					echo '</ul>';
+				}
+
+				if ( ! empty( $descendant_ids ) ) {
+					echo '<h3 class="kb-article-family-heading kb-article-descendants-heading">' . esc_html__( 'Child Articles', 'kb-manager' ) . '</h3>';
+					echo '<ul class="kb-article-descendants">';
+					foreach ( $descendant_ids as $descendant_id ) {
+						printf(
+							'<li><a href="%1$s">%2$s</a></li>',
+							esc_url( get_permalink( $descendant_id ) ),
+							esc_html( get_the_title( $descendant_id ) )
+						);
+					}
+					echo '</ul>';
+				}
+
+				echo '</div>';
+				return ob_get_clean();
+			}
+
+			protected static function get_kb_descendants_post_order( $article_id ) {
+				$children = get_posts(
+					array(
+						'post_type'      => self::POST_TYPE,
+						'post_status'    => 'publish',
+						'posts_per_page' => -1,
+						'post_parent'    => (int) $article_id,
+						'orderby'        => array( 'menu_order' => 'ASC', 'title' => 'ASC' ),
+						'order'          => 'ASC',
+						'fields'         => 'ids',
+					)
+				);
+
+				if ( empty( $children ) ) {
+					return array();
+				}
+
+				$descendants = array();
+				foreach ( $children as $child_id ) {
+					$descendants = array_merge( $descendants, self::get_kb_descendants_post_order( $child_id ) );
+					$descendants[] = (int) $child_id;
+				}
+
+				return $descendants;
 			}
 
 
