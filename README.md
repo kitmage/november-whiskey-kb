@@ -111,6 +111,7 @@ Renders a **filtered tree view** for the current KB article using the same neste
   - All ancestors up to the top-level parent.
   - The current article itself.
   - All descendants (children, grandchildren, etc.).
+  - Sibling posts of the current article (when the current article has a parent).
 - **Attributes**
   - None.
 - **Context behavior**

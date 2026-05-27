@@ -951,8 +951,32 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				}
 
 				$ancestor_ids = get_post_ancestors( $article_id );
-				$family_ids   = array_merge( $ancestor_ids, array( (int) $article_id ), self::get_kb_descendants_post_order( $article_id ) );
-				$family_ids   = array_values( array_unique( array_map( 'intval', $family_ids ) ) );
+
+				$sibling_ids = array();
+				$parent_id   = (int) wp_get_post_parent_id( $article_id );
+				if ( $parent_id > 0 ) {
+					$sibling_ids = get_posts(
+						array(
+							'post_type'      => self::POST_TYPE,
+							'post_status'    => 'publish',
+							'posts_per_page' => -1,
+							'post_parent'    => $parent_id,
+							'orderby'        => array( 'menu_order' => 'ASC', 'title' => 'ASC' ),
+							'order'          => 'ASC',
+							'fields'         => 'ids',
+						)
+					);
+				}
+
+				$descendant_ids = self::get_kb_descendants_post_order( $article_id );
+
+				$family_ids = array_merge(
+					$ancestor_ids,
+					array( (int) $article_id ),
+					$descendant_ids,
+					array_map( 'intval', $sibling_ids )
+				);
+				$family_ids = array_values( array_unique( array_map( 'intval', $family_ids ) ) );
 
 				if ( empty( $family_ids ) ) {
 					return '';
