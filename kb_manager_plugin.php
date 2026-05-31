@@ -642,8 +642,8 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 						<span class="dashicons dashicons-move kb-organize-article-handle" aria-hidden="true"></span>
 						<a class="kb-organize-article-title" href="<?php echo esc_url( get_edit_post_link( $post_id ) ); ?>"><?php echo esc_html( get_the_title( $post_id ) ); ?></a>
 						<span class="kb-organize-article-controls">
-							<span class="kb-organize-control-group"><?php esc_html_e( 'Sibling:', 'kb-manager' ); ?> <button type="button" class="button-link kb-organize-article-action" data-action="sibling-up"><?php esc_html_e( 'Up', 'kb-manager' ); ?></button> <button type="button" class="button-link kb-organize-article-action" data-action="sibling-down"><?php esc_html_e( 'Down', 'kb-manager' ); ?></button></span>
-							<span class="kb-organize-control-group"><?php esc_html_e( 'Generation:', 'kb-manager' ); ?> <button type="button" class="button-link kb-organize-article-action" data-action="promote"><?php esc_html_e( 'Promote', 'kb-manager' ); ?></button> <button type="button" class="button-link kb-organize-article-action" data-action="nest"><?php esc_html_e( 'Nest', 'kb-manager' ); ?></button></span>
+							<span class="kb-organize-control-group"><?php esc_html_e( 'Sibling:', 'kb-manager' ); ?> <button type="button" class="button button-small kb-organize-article-action" data-action="sibling-up" title="<?php esc_attr_e( 'Move up among siblings', 'kb-manager' ); ?>"><?php esc_html_e( '⬆️ Up', 'kb-manager' ); ?></button> <button type="button" class="button button-small kb-organize-article-action" data-action="sibling-down" title="<?php esc_attr_e( 'Move down among siblings', 'kb-manager' ); ?>"><?php esc_html_e( '⬇️ Down', 'kb-manager' ); ?></button></span>
+							<span class="kb-organize-control-group"><?php esc_html_e( 'Generation:', 'kb-manager' ); ?> <button type="button" class="button button-small kb-organize-article-action" data-action="promote" title="<?php esc_attr_e( 'Promote one generation', 'kb-manager' ); ?>"><?php esc_html_e( '⬅️ Promote', 'kb-manager' ); ?></button> <button type="button" class="button button-small kb-organize-article-action" data-action="nest" title="<?php esc_attr_e( 'Nest beneath previous sibling', 'kb-manager' ); ?>"><?php esc_html_e( '➡️ Nest', 'kb-manager' ); ?></button></span>
 						</span>
 						<span class="kb-organize-article-status"><?php echo esc_html( $status_label ); ?></span>
 					</div>
@@ -721,9 +721,11 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 					.kb-organize-article-item { margin: 0 0 6px; list-style: none; }
 					.kb-organize-article-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid #dcdcde; background: #fff; }
 					.kb-organize-article-handle { cursor: move; color: #646970; }
-					.kb-organize-article-controls { display: inline-flex; flex-wrap: wrap; gap: 8px; color: #646970; font-size: 12px; }
-					.kb-organize-control-group + .kb-organize-control-group { padding-left: 8px; border-left: 1px solid #dcdcde; }
-					.kb-organize-article-action[disabled] { color: #a7aaad; cursor: default; text-decoration: none; }
+					.kb-organize-article-controls { display: inline-flex; flex-wrap: wrap; gap: 10px; align-items: center; color: #646970; font-size: 12px; }
+					.kb-organize-control-group { display: inline-flex; gap: 5px; align-items: center; padding: 3px 5px; border-radius: 4px; background: #f6f7f7; }
+					.kb-organize-control-group + .kb-organize-control-group { margin-left: 2px; }
+					.kb-organize-article-action.button { min-height: 28px; padding: 1px 8px; line-height: 24px; }
+					.kb-organize-article-action[disabled] { color: #a7aaad; cursor: default; }
 					.kb-organize-article-status { margin-left: auto; color: #646970; font-size: 12px; }
 					.kb-organize-article-placeholder { min-height: 34px; margin: 0 0 6px; border: 1px dashed #2271b1; background: #f0f6fc; list-style: none; }
 					.kb-generation-band-1 { --kb-generation-color: #2271b1; --kb-generation-background: #f0f6fc; }
