@@ -28,11 +28,10 @@ KB Manager is a WordPress plugin that provides a focused knowledge base workflow
 
 ### Manual ordering
 
-- Adds an **Order** field to KB Section add/edit forms.
+- Keeps the KB Section taxonomy controls hidden in wp-admin while preserving frontend taxonomy behavior.
 - Adds an **Article Order** metabox to KB Article edit screens.
 - Persists section order in term meta (`_kb_section_order`).
 - Persists article order using WordPress `menu_order`.
-- Displays section order in taxonomy list columns.
 - Sorts sections by order ascending in admin by default.
 - Sorts KB articles by `menu_order` then title in admin by default.
 
@@ -150,4 +149,4 @@ Renders a breadcrumb trail for the current KB article from top-level ancestor to
 ## Notes
 
 - On activation/deactivation, the plugin flushes rewrite rules.
-- KB section order editing requires the `manage_kb_sections` capability.
+- The KB Section taxonomy admin UI, article-editor field, and article-list section column are intentionally hidden. Restore the commented `show_ui` and `show_admin_column` settings and remove `meta_box_cb` in `register_taxonomy()` to expose them again.
