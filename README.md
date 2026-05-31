@@ -34,13 +34,14 @@ KB Manager is a WordPress plugin that provides a focused knowledge base workflow
 - Persists article order using WordPress `menu_order`.
 - Sorts sections by order ascending in admin by default.
 - Sorts KB articles by `menu_order` then title in admin by default.
+- Adds an **Organize Articles** visual editor for drag-and-drop sibling ordering and nested parent-child article relationships.
 
 ### Admin restrictions for KB Editors
 
 - Hides most wp-admin menu pages not needed for KB management.
 - Restricts accessible admin screens to KB, media, and profile flows.
 - Redirects dashboard access to the KB article list.
-- Adds an **Organize KB** submenu page with drag-and-drop section and article ordering.
+- Adds an **Organize Articles** submenu page with drag-and-drop article ordering and unlimited parent-child nesting.
 
 ## Shortcodes
 
