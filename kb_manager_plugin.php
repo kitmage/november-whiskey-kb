@@ -640,7 +640,11 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				<li class="kb-organize-article-item" data-post-id="<?php echo esc_attr( (string) $post_id ); ?>">
 					<div class="kb-organize-article-row">
 						<span class="dashicons dashicons-move kb-organize-article-handle" aria-hidden="true"></span>
-						<a href="<?php echo esc_url( get_edit_post_link( $post_id ) ); ?>"><?php echo esc_html( get_the_title( $post_id ) ); ?></a>
+						<a class="kb-organize-article-title" href="<?php echo esc_url( get_edit_post_link( $post_id ) ); ?>"><?php echo esc_html( get_the_title( $post_id ) ); ?></a>
+						<span class="kb-organize-article-controls">
+							<span class="kb-organize-control-group"><?php esc_html_e( 'Sibling:', 'kb-manager' ); ?> <button type="button" class="button-link kb-organize-article-action" data-action="sibling-up"><?php esc_html_e( 'Up', 'kb-manager' ); ?></button> <button type="button" class="button-link kb-organize-article-action" data-action="sibling-down"><?php esc_html_e( 'Down', 'kb-manager' ); ?></button></span>
+							<span class="kb-organize-control-group"><?php esc_html_e( 'Generation:', 'kb-manager' ); ?> <button type="button" class="button-link kb-organize-article-action" data-action="promote"><?php esc_html_e( 'Promote', 'kb-manager' ); ?></button> <button type="button" class="button-link kb-organize-article-action" data-action="nest"><?php esc_html_e( 'Nest', 'kb-manager' ); ?></button></span>
+						</span>
 						<span class="kb-organize-article-status"><?php echo esc_html( $status_label ); ?></span>
 					</div>
 					<?php self::render_organize_article_list( $articles_by_parent, $articles_by_id, $post_id, $rendered ); ?>
@@ -680,7 +684,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				?>
 				<div class="wrap">
 					<h1><?php esc_html_e( 'Organize Articles', 'kb-manager' ); ?></h1>
-					<p><?php esc_html_e( 'Drag articles to change their order. Drop an article into another article to make it a child. Any depth of nesting is supported.', 'kb-manager' ); ?></p>
+					<p><?php esc_html_e( 'Drag articles to change their order. Drop an article into another article to make it a child. Any depth of nesting is supported. You can also use the Sibling links to reorder an article or the Generation links to promote it one level or nest it under its previous sibling.', 'kb-manager' ); ?></p>
 					<div class="kb-organize-generation-legend" aria-label="<?php esc_attr_e( 'Article generation color legend', 'kb-manager' ); ?>">
 						<strong><?php esc_html_e( 'Drop-zone colors:', 'kb-manager' ); ?></strong>
 						<span class="kb-generation-band-1"><?php esc_html_e( 'Generation 1', 'kb-manager' ); ?></span>
@@ -715,8 +719,11 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 					.kb-organize-article-list::before { position: absolute; top: 6px; left: 8px; color: #50575e; content: attr(data-drop-label); font-size: 11px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
 					.kb-organize-article-root { padding-left: 12px; border: 1px solid #dcdcde; border-left: 4px solid var(--kb-generation-color); }
 					.kb-organize-article-item { margin: 0 0 6px; list-style: none; }
-					.kb-organize-article-row { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid #dcdcde; background: #fff; }
+					.kb-organize-article-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid #dcdcde; background: #fff; }
 					.kb-organize-article-handle { cursor: move; color: #646970; }
+					.kb-organize-article-controls { display: inline-flex; flex-wrap: wrap; gap: 8px; color: #646970; font-size: 12px; }
+					.kb-organize-control-group + .kb-organize-control-group { padding-left: 8px; border-left: 1px solid #dcdcde; }
+					.kb-organize-article-action[disabled] { color: #a7aaad; cursor: default; text-decoration: none; }
 					.kb-organize-article-status { margin-left: auto; color: #646970; font-size: 12px; }
 					.kb-organize-article-placeholder { min-height: 34px; margin: 0 0 6px; border: 1px dashed #2271b1; background: #f0f6fc; list-style: none; }
 					.kb-generation-band-1 { --kb-generation-color: #2271b1; --kb-generation-background: #f0f6fc; }
@@ -750,6 +757,30 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 							return dropZoneLabels.generation + ' ' + generation + ' · ' + relationship;
 						}
 
+						function setActionEnabled($article, action, enabled) {
+							$article.children('.kb-organize-article-row')
+								.find('.kb-organize-article-action[data-action="' + action + '"]')
+								.prop('disabled', !enabled)
+								.attr('aria-disabled', enabled ? 'false' : 'true');
+						}
+
+						function refreshArticleControls() {
+							$('.kb-organize-article-item').each(function() {
+								var $article = $(this);
+								var $list = $article.parent('.kb-organize-article-list');
+
+								setActionEnabled($article, 'sibling-up', $article.prev('.kb-organize-article-item').length > 0);
+								setActionEnabled($article, 'sibling-down', $article.next('.kb-organize-article-item').length > 0);
+								setActionEnabled($article, 'promote', !$list.hasClass('kb-organize-article-root'));
+								setActionEnabled($article, 'nest', $article.prev('.kb-organize-article-item').length > 0);
+							});
+						}
+
+						function refreshOrganizer() {
+							refreshDropZones();
+							refreshArticleControls();
+						}
+
 						function refreshDropZones() {
 							function refreshList($list, generation) {
 								var label = getDropZoneLabel(generation);
@@ -773,10 +804,32 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 							items: '> .kb-organize-article-item',
 							handle: '.kb-organize-article-handle',
 							placeholder: 'kb-organize-article-placeholder',
-							stop: refreshDropZones
+							stop: refreshOrganizer
 						});
 
-						refreshDropZones();
+						$('#kb-organize-articles-form').on('click', '.kb-organize-article-action', function() {
+							var $action = $(this);
+							var $article = $action.closest('.kb-organize-article-item');
+							var action = $action.data('action');
+
+							if ($action.prop('disabled')) {
+								return;
+							}
+
+							if ('sibling-up' === action) {
+								$article.insertBefore($article.prev('.kb-organize-article-item'));
+							} else if ('sibling-down' === action) {
+								$article.insertAfter($article.next('.kb-organize-article-item'));
+							} else if ('promote' === action) {
+								$article.insertAfter($article.parent('.kb-organize-article-list').closest('.kb-organize-article-item'));
+							} else if ('nest' === action) {
+								$article.prev('.kb-organize-article-item').children('.kb-organize-article-list').append($article);
+							}
+
+							refreshOrganizer();
+						});
+
+						refreshOrganizer();
 
 						$('#kb-organize-articles-form').on('submit', function() {
 							var payload = { articles: [] };
