@@ -681,6 +681,13 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				<div class="wrap">
 					<h1><?php esc_html_e( 'Organize Articles', 'kb-manager' ); ?></h1>
 					<p><?php esc_html_e( 'Drag articles to change their order. Drop an article into another article to make it a child. Any depth of nesting is supported.', 'kb-manager' ); ?></p>
+					<div class="kb-organize-generation-legend" aria-label="<?php esc_attr_e( 'Article generation color legend', 'kb-manager' ); ?>">
+						<strong><?php esc_html_e( 'Drop-zone colors:', 'kb-manager' ); ?></strong>
+						<span class="kb-generation-band-1"><?php esc_html_e( 'Generation 1', 'kb-manager' ); ?></span>
+						<span class="kb-generation-band-2"><?php esc_html_e( 'Generation 2', 'kb-manager' ); ?></span>
+						<span class="kb-generation-band-3"><?php esc_html_e( 'Generation 3', 'kb-manager' ); ?></span>
+						<span class="kb-generation-band-4"><?php esc_html_e( 'Generation 4+', 'kb-manager' ); ?></span>
+					</div>
 					<?php if ( isset( $_GET['updated'] ) && '1' === $_GET['updated'] ) : ?>
 						<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Article organization updated.', 'kb-manager' ); ?></p></div>
 					<?php elseif ( isset( $_GET['updated'] ) && '0' === $_GET['updated'] ) : ?>
@@ -701,24 +708,75 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				</div>
 
 				<style>
-					.kb-organize-article-root { max-width: 900px; padding: 12px; border: 1px solid #dcdcde; background: #fff; }
-					.kb-organize-article-list { min-height: 18px; margin: 0; padding: 6px 0 2px 28px; }
-					.kb-organize-article-root { padding-left: 12px; }
+					.kb-organize-generation-legend { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+					.kb-organize-generation-legend span { padding: 3px 8px; border-left: 4px solid var(--kb-generation-color); background: var(--kb-generation-background); }
+					.kb-organize-article-root { max-width: 900px; }
+					.kb-organize-article-list { position: relative; min-height: 22px; margin: 0; padding: 28px 6px 4px 28px; border-left: 4px solid var(--kb-generation-color); background: var(--kb-generation-background); }
+					.kb-organize-article-list::before { position: absolute; top: 6px; left: 8px; color: #50575e; content: attr(data-drop-label); font-size: 11px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+					.kb-organize-article-root { padding-left: 12px; border: 1px solid #dcdcde; border-left: 4px solid var(--kb-generation-color); }
 					.kb-organize-article-item { margin: 0 0 6px; list-style: none; }
-					.kb-organize-article-row { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid #dcdcde; background: #f6f7f7; }
+					.kb-organize-article-row { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid #dcdcde; background: #fff; }
 					.kb-organize-article-handle { cursor: move; color: #646970; }
 					.kb-organize-article-status { margin-left: auto; color: #646970; font-size: 12px; }
 					.kb-organize-article-placeholder { min-height: 34px; margin: 0 0 6px; border: 1px dashed #2271b1; background: #f0f6fc; list-style: none; }
+					.kb-generation-band-1 { --kb-generation-color: #2271b1; --kb-generation-background: #f0f6fc; }
+					.kb-generation-band-2 { --kb-generation-color: #00a32a; --kb-generation-background: #edfaef; }
+					.kb-generation-band-3 { --kb-generation-color: #dba617; --kb-generation-background: #fcf9e8; }
+					.kb-generation-band-4 { --kb-generation-color: #d63638; --kb-generation-background: #fcf0f1; }
+					.kb-generation-band-5 { --kb-generation-color: #8c5edb; --kb-generation-background: #f5f0fc; }
+					.kb-generation-band-6 { --kb-generation-color: #008a96; --kb-generation-background: #edf8f9; }
 				</style>
 
 				<script>
 					jQuery(function($) {
+						var generationBandClasses = 'kb-generation-band-1 kb-generation-band-2 kb-generation-band-3 kb-generation-band-4 kb-generation-band-5 kb-generation-band-6';
+						var dropZoneLabels = {
+							generation: <?php echo wp_json_encode( __( 'Generation', 'kb-manager' ) ); ?>,
+							topLevel: <?php echo wp_json_encode( __( 'Top-level drop zone', 'kb-manager' ) ); ?>,
+							child: <?php echo wp_json_encode( __( 'Child drop zone', 'kb-manager' ) ); ?>,
+							grandchild: <?php echo wp_json_encode( __( 'Grandchild drop zone', 'kb-manager' ) ); ?>,
+							descendant: <?php echo wp_json_encode( __( 'Descendant drop zone', 'kb-manager' ) ); ?>
+						};
+
+						function getDropZoneLabel(generation) {
+							var relationship = dropZoneLabels.descendant;
+							if (1 === generation) {
+								relationship = dropZoneLabels.topLevel;
+							} else if (2 === generation) {
+								relationship = dropZoneLabels.child;
+							} else if (3 === generation) {
+								relationship = dropZoneLabels.grandchild;
+							}
+							return dropZoneLabels.generation + ' ' + generation + ' · ' + relationship;
+						}
+
+						function refreshDropZones() {
+							function refreshList($list, generation) {
+								var label = getDropZoneLabel(generation);
+								var band = ((generation - 1) % 6) + 1;
+
+								$list.removeClass(generationBandClasses)
+									.addClass('kb-generation-band-' + band)
+									.attr('data-drop-label', label)
+									.attr('aria-label', label);
+
+								$list.children('.kb-organize-article-item').each(function() {
+									refreshList($(this).children('.kb-organize-article-list'), generation + 1);
+								});
+							}
+
+							refreshList($('.kb-organize-article-root'), 1);
+						}
+
 						$('.kb-organize-article-list').sortable({
 							connectWith: '.kb-organize-article-list',
 							items: '> .kb-organize-article-item',
 							handle: '.kb-organize-article-handle',
-							placeholder: 'kb-organize-article-placeholder'
+							placeholder: 'kb-organize-article-placeholder',
+							stop: refreshDropZones
 						});
+
+						refreshDropZones();
 
 						$('#kb-organize-articles-form').on('submit', function() {
 							var payload = { articles: [] };
