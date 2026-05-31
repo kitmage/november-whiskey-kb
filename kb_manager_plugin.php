@@ -130,8 +130,13 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				array(
 					'hierarchical'      => true,
 					'labels'            => $labels,
-					'show_ui'           => true,
-					'show_admin_column' => true,
+					// Keep sections available to the frontend while hiding the taxonomy controls in wp-admin.
+					// To restore the section admin UI later, change these values back to true and remove meta_box_cb.
+					// 'show_ui'           => true,
+					// 'show_admin_column' => true,
+					'show_ui'           => false,
+					'show_admin_column' => false,
+					'meta_box_cb'       => false,
 					'show_in_rest'      => true,
 					'rewrite'           => array( 'slug' => 'kb-section' ),
 					'capabilities'      => array(
