@@ -2,7 +2,7 @@
 /**
  * Plugin Name: KB Manager
  * Description: Knowledge Base post type + hierarchical sections taxonomy + parent-child article support + manual ordering + KB Editor role.
- * Version: 1.1.1
+ * Version: 1.1.2
  * Author: Kitmage.com
  * License: GPL-2.0-or-later
  */
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 	final class KB_Manager_Plugin {
-		const VERSION            = '1.1.1';
+		const VERSION            = '1.1.2';
 		const ROLE               = 'kb_editor';
 		const POST_TYPE          = 'kb_article';
 		const TAXONOMY           = 'kb_section';
@@ -148,6 +148,7 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				$caps = array(
 				'read'                          => true,
 				'upload_files'                  => true,
+				'delete_posts'                   => true,
 
 				'edit_kb_article'               => true,
 				'read_kb_article'               => true,
