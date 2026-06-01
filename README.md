@@ -7,7 +7,7 @@ KB Manager is a WordPress plugin that provides a focused knowledge base workflow
 - A hierarchical taxonomy for sections (`kb_section`).
 - Manual ordering for sections and articles.
 - A dedicated **KB Editor** role with KB-specific capabilities.
-- Restricted admin/media access for KB Editors.
+- Restricted admin access for KB Editors.
 - Shortcodes for rendering KB sections and KB article navigation lists.
 
 ## Features
@@ -24,7 +24,7 @@ KB Manager is a WordPress plugin that provides a focused knowledge base workflow
 - Grants capabilities to create, edit, publish, and delete KB articles.
 - Grants capabilities to manage and assign KB sections.
 - Ensures the Administrator role also has KB capabilities so KB menus remain visible to site admins.
-- Limits media browsing and deletion so KB Editors only manage their own uploads.
+- Allows KB Editors to browse and manage the Media Library.
 
 ### Manual ordering
 

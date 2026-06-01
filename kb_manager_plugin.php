@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: KB Manager
- * Description: Knowledge Base post type + hierarchical sections taxonomy + parent-child article support + manual ordering + KB Editor role + restricted media access.
- * Version: 1.1.0
+ * Description: Knowledge Base post type + hierarchical sections taxonomy + parent-child article support + manual ordering + KB Editor role.
+ * Version: 1.1.1
  * Author: Kitmage.com
  * License: GPL-2.0-or-later
  */
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 	final class KB_Manager_Plugin {
-		const VERSION            = '1.1.0';
+		const VERSION            = '1.1.1';
 		const ROLE               = 'kb_editor';
 		const POST_TYPE          = 'kb_article';
 		const TAXONOMY           = 'kb_section';
@@ -40,16 +40,11 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			add_action( 'pre_get_terms', array( __CLASS__, 'sort_terms_in_admin' ) );
 			add_action( 'pre_get_posts', array( __CLASS__, 'sort_posts_in_admin' ) );
 
-			add_filter( 'ajax_query_attachments_args', array( __CLASS__, 'limit_media_modal_to_own_uploads' ) );
-			add_action( 'pre_get_posts', array( __CLASS__, 'limit_media_library_to_own_uploads' ) );
-			add_filter( 'map_meta_cap', array( __CLASS__, 'restrict_attachment_deletes_to_owners' ), 10, 4 );
-
 				add_action( 'admin_menu', array( __CLASS__, 'restrict_admin_menu' ), 999 );
 				add_action( 'admin_menu', array( __CLASS__, 'register_organize_articles_submenu' ) );
 				add_action( 'admin_init', array( __CLASS__, 'restrict_admin_screens' ) );
 				add_action( 'admin_init', array( __CLASS__, 'handle_organize_articles_submission' ) );
 				add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_organize_articles_assets' ) );
-				add_filter( 'views_upload', array( __CLASS__, 'prune_media_views' ) );
 				add_filter( 'editable_roles', array( __CLASS__, 'hide_roles_from_kb_editor' ) );
 
 				add_shortcode( 'kb_sections', array( __CLASS__, 'kb_sections_shortcode' ) );
@@ -368,49 +363,6 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			return $user && in_array( self::ROLE, (array) $user->roles, true );
 		}
 
-		public static function limit_media_modal_to_own_uploads( $query ) {
-			if ( self::is_kb_editor() ) {
-				$query['author'] = get_current_user_id();
-			}
-			return $query;
-		}
-
-		public static function limit_media_library_to_own_uploads( $query ) {
-			if ( ! is_admin() || ! $query instanceof WP_Query || ! $query->is_main_query() ) {
-				return;
-			}
-
-			global $pagenow;
-			if ( 'upload.php' !== $pagenow ) {
-				return;
-			}
-
-			if ( self::is_kb_editor() ) {
-				$query->set( 'author', get_current_user_id() );
-			}
-		}
-
-		public static function restrict_attachment_deletes_to_owners( $caps, $cap, $user_id, $args ) {
-			if ( 'delete_post' !== $cap || empty( $args[0] ) ) {
-				return $caps;
-			}
-
-			$post = get_post( (int) $args[0] );
-			if ( ! $post || 'attachment' !== $post->post_type ) {
-				return $caps;
-			}
-
-			$user = get_user_by( 'id', $user_id );
-			if ( ! $user || ! in_array( self::ROLE, (array) $user->roles, true ) ) {
-				return $caps;
-			}
-
-			if ( (int) $post->post_author !== (int) $user_id ) {
-				return array( 'do_not_allow' );
-			}
-
-			return $caps;
-		}
 
 		public static function restrict_admin_menu() {
 			if ( ! self::is_kb_editor() ) {
@@ -506,12 +458,6 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			exit;
 		}
 
-		public static function prune_media_views( $views ) {
-			if ( self::is_kb_editor() ) {
-				unset( $views['mine'], $views['detached'], $views['unattached'] );
-			}
-			return $views;
-		}
 
 			public static function hide_roles_from_kb_editor( $roles ) {
 				if ( self::is_kb_editor() ) {
