@@ -93,9 +93,10 @@ Renders all non-empty KB sections recursively with their published KB articles.
 Renders the entire KB article tree from top-level parents downward.
 
 - **Attributes**
-  - None.
+  - `style` (string, default `""`): Set to `"details"` to make every article with children a native collapsible `<details>` element. Its linked title is rendered inside `<summary>`, and its nested child list is the details content. This works recursively at every nesting depth without JavaScript.
 - **Output**
   - `<ul class="kb-article-titles">` with nested lists.
+  - With `style="details"`, the root list also receives `kb-article-titles-details`; parent items render a `<details class="kb-article-details">` wrapper and `<summary class="kb-article-summary">` title.
   - Adds CSS classes per item depth and relationship:
     - `kb-article-item`
     - `kb-depth-{n}`

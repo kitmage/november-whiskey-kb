@@ -961,7 +961,17 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 			}
 
 
-			public static function kb_article_titles_shortcode() {
+			public static function kb_article_titles_shortcode( $atts = array() ) {
+				$atts = shortcode_atts(
+					array(
+						'style' => '',
+					),
+					$atts,
+					'kb_article_titles'
+				);
+
+				$use_details = 'details' === strtolower( trim( (string) $atts['style'] ) );
+
 				$articles = get_posts(
 					array(
 						'post_type'      => self::POST_TYPE,
@@ -978,17 +988,17 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				}
 
 				ob_start();
-				echo '<ul class="kb-article-titles">';
+				echo '<ul class="kb-article-titles' . ( $use_details ? ' kb-article-titles-details' : '' ) . '">';
 
 				foreach ( $articles as $index => $article ) {
-					self::render_kb_article_title_item( $article, 0, $index + 1 );
+					self::render_kb_article_title_item( $article, 0, $index + 1, $use_details );
 				}
 
 				echo '</ul>';
 				return ob_get_clean();
 			}
 
-			protected static function render_kb_article_title_item( $article, $depth = 0, $sibling_index = 1 ) {
+			protected static function render_kb_article_title_item( $article, $depth = 0, $sibling_index = 1, $use_details = false ) {
 				$item_classes = array( 'kb-article-item', 'kb-depth-' . (int) $depth, 'kb-child-index-' . (int) $sibling_index );
 
 				$current_article_id = get_queried_object_id();
@@ -1002,13 +1012,6 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 					$item_classes[] = 'kb-descendant';
 				}
 
-				printf(
-					'<li class="%1$s"><a href="%2$s">%3$s</a>',
-					esc_attr( implode( ' ', $item_classes ) ),
-					esc_url( get_permalink( $article->ID ) ),
-					esc_html( get_the_title( $article->ID ) )
-				);
-
 				$children = get_posts(
 					array(
 						'post_type'      => self::POST_TYPE,
@@ -1020,12 +1023,32 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 					)
 				);
 
+				printf( '<li class="%s">', esc_attr( implode( ' ', $item_classes ) ) );
+
+				if ( $use_details && ! empty( $children ) ) {
+					echo '<details class="kb-article-details"><summary class="kb-article-summary">';
+				}
+
+				printf(
+					'<a href="%1$s">%2$s</a>',
+					esc_url( get_permalink( $article->ID ) ),
+					esc_html( get_the_title( $article->ID ) )
+				);
+
+				if ( $use_details && ! empty( $children ) ) {
+					echo '</summary>';
+				}
+
 				if ( ! empty( $children ) ) {
 					echo '<ul class="kb-article-children kb-depth-' . esc_attr( (string) ( (int) $depth + 1 ) ) . '">';
 					foreach ( $children as $index => $child ) {
-						self::render_kb_article_title_item( $child, (int) $depth + 1, $index + 1 );
+						self::render_kb_article_title_item( $child, (int) $depth + 1, $index + 1, $use_details );
 					}
 					echo '</ul>';
+				}
+
+				if ( $use_details && ! empty( $children ) ) {
+					echo '</details>';
 				}
 
 				echo '</li>';
