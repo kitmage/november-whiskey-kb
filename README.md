@@ -96,13 +96,14 @@ Renders the entire KB article tree from top-level parents downward.
   - `style` (string, default `""`): Set to `"details"` to make every article with children a native collapsible `<details>` element. Its linked title is rendered inside `<summary>`, and its nested child list is the details content. This works recursively at every nesting depth without JavaScript.
 - **Output**
   - `<ul class="kb-article-titles">` with nested lists.
-  - With `style="details"`, the root list also receives `kb-article-titles-details`; parent items render a `<details class="kb-article-details">` wrapper and `<summary class="kb-article-summary">` title.
+  - With `style="details"`, the root list also receives `kb-article-titles-details`; parent items with children render a `<details class="kb-article-details">` wrapper and `<summary class="kb-article-summary">` title, while childless top-level parent items receive a `childless` class.
   - Adds CSS classes per item depth and relationship:
     - `kb-article-item`
     - `kb-depth-{n}`
     - `kb-child-index-{n}`
     - `kb-parent` or `kb-descendant`
     - `kb-active` for the current queried KB article
+    - `active-parent` for ancestor items of the current queried KB article
 - **Ordering**
   - At every tree level: `menu_order` ascending, then title.
 
