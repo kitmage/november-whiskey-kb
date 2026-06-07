@@ -1023,6 +1023,10 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 					)
 				);
 
+				if ( $use_details && 0 === (int) $depth && empty( $children ) ) {
+					$item_classes[] = 'childless';
+				}
+
 				printf( '<li class="%s">', esc_attr( implode( ' ', $item_classes ) ) );
 
 				if ( $use_details && ! empty( $children ) ) {
