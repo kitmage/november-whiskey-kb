@@ -1002,8 +1002,13 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				$item_classes = array( 'kb-article-item', 'kb-depth-' . (int) $depth, 'kb-child-index-' . (int) $sibling_index );
 
 				$current_article_id = get_queried_object_id();
+				$is_active_parent  = $current_article_id && in_array( (int) $article->ID, array_map( 'intval', get_post_ancestors( $current_article_id ) ), true );
 				if ( $current_article_id && (int) $current_article_id === (int) $article->ID ) {
 					$item_classes[] = 'kb-active';
+				}
+
+				if ( $is_active_parent ) {
+					$item_classes[] = 'active-parent';
 				}
 
 				if ( 0 === (int) $depth ) {
@@ -1023,10 +1028,14 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 					)
 				);
 
+				if ( $use_details && 0 === (int) $depth && empty( $children ) ) {
+					$item_classes[] = 'childless';
+				}
+
 				printf( '<li class="%s">', esc_attr( implode( ' ', $item_classes ) ) );
 
 				if ( $use_details && ! empty( $children ) ) {
-					echo '<details class="kb-article-details"><summary class="kb-article-summary">';
+					echo '<details class="kb-article-details"' . ( $is_active_parent ? ' open' : '' ) . '><summary class="kb-article-summary">';
 				}
 
 				printf(
@@ -1117,6 +1126,10 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				$current_article_id = get_queried_object_id();
 				if ( $current_article_id && (int) $current_article_id === (int) $article->ID ) {
 					$item_classes[] = 'kb-active';
+				}
+
+				if ( $current_article_id && in_array( (int) $article->ID, array_map( 'intval', get_post_ancestors( $current_article_id ) ), true ) ) {
+					$item_classes[] = 'active-parent';
 				}
 
 				if ( 0 === (int) $depth ) {
