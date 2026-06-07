@@ -1006,6 +1006,10 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 					$item_classes[] = 'kb-active';
 				}
 
+				if ( $current_article_id && in_array( (int) $article->ID, array_map( 'intval', get_post_ancestors( $current_article_id ) ), true ) ) {
+					$item_classes[] = 'active-parent';
+				}
+
 				if ( 0 === (int) $depth ) {
 					$item_classes[] = 'kb-parent';
 				} else {
@@ -1121,6 +1125,10 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				$current_article_id = get_queried_object_id();
 				if ( $current_article_id && (int) $current_article_id === (int) $article->ID ) {
 					$item_classes[] = 'kb-active';
+				}
+
+				if ( $current_article_id && in_array( (int) $article->ID, array_map( 'intval', get_post_ancestors( $current_article_id ) ), true ) ) {
+					$item_classes[] = 'active-parent';
 				}
 
 				if ( 0 === (int) $depth ) {
