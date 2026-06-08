@@ -139,7 +139,6 @@ Renders a breadcrumb trail for the current KB article from top-level ancestor to
 - **Context behavior**
   - Outputs only on `kb_article` posts.
   - Returns empty outside `kb_article` context.
-  - Returns empty when the current article has no parent (single breadcrumb element).
 - **Output**
   - `<nav class="kb-breadcrumbs">` containing linked ancestors and current title as `<span class="kb-breadcrumb-current kb-active">...`.
 - **Ordering**

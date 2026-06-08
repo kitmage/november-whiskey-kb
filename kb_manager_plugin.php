@@ -1220,10 +1220,6 @@ if ( ! class_exists( 'KB_Manager_Plugin' ) ) {
 				$crumb_ids = array_reverse( get_post_ancestors( $article_id ) );
 				$crumb_ids[] = (int) $article_id;
 
-				if ( count( $crumb_ids ) <= 1 ) {
-					return '';
-				}
-
 				$separator = wp_strip_all_tags( (string) $atts['separator'] );
 				if ( '' === trim( $separator ) ) {
 					$separator = '>';
